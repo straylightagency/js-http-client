@@ -116,15 +116,15 @@ async function createFetchHandler(url, method, body, headers, options) {
                     resolve( buildResponse( body, response.status, response.statusText, headers ) );
                 } );
 
-                if ( contentType.includes('json') ) {
+                if ( contentType && contentType.includes('json') ) {
                     return response.json().then( wrapResponse );
                 }
 
-                if ( contentType.includes('image', 0 ) ) {
+                if ( contentType && contentType.includes('image', 0 ) ) {
                     return response.blob().then( wrapResponse );
                 }
 
-                if ( contentType.includes('video', 0 ) || contentType.includes('audio', 0 ) ) {
+                if ( contentType && ( contentType.includes('video', 0 ) || contentType.includes('audio', 0 ) ) ) {
                     return response.arrayBuffer().then( wrapResponse );
                 }
 
