@@ -16,7 +16,7 @@
   },
   "private": false,
   "dependencies": {
-    "@straylightagency/utils": "^1.0.2"
+    "@straylightagency/utils": "^1.0.4"
   },
   "keywords": [],
   "author": "Anthony Pauwels (anthony@straylightagency.be)",

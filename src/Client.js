@@ -4,7 +4,7 @@ import Request from "./Request.js";
 import Response from "./Response.js";
 import ResponseHeaders from "./ResponseHeaders.js";
 import ResponseError from "./ResponseError.js";
-import {isClass, isPlainObject} from "@straylightagency/utils/misc/is.js";
+import {isClass, isPlainObject} from "@straylightagency/utils/misc";
 
 /**
  * @param object {{}}
