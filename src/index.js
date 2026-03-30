@@ -2,7 +2,7 @@ import Client from "./Client";
 import RequestOptions from "./RequestOptions";
 import RequestHeaders from "./RequestHeaders";
 import ResponseError from "./ResponseError";
-import {serialize} from "@straylightagency/utils/string";
+import {serialize} from "@straylightagency/utils/object";
 
 /**
  * @type {RequestHeaders}
