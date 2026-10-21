@@ -491,6 +491,21 @@ class Client {
              * @param {{}} config
              * @return {Promise<*&{error: *, request: *}>}
              */
+            async postForm(url, body = {}, config = {}) {
+                return await this.send( {
+                    method: 'POST',
+                    url,
+                    body: toFormData(body),
+                    ...config,
+                }  );
+            },
+
+            /**
+             * @param {string} url
+             * @param {{}} body
+             * @param {{}} config
+             * @return {Promise<*&{error: *, request: *}>}
+             */
             async put(url, body = {}, config = {}) {
                 return await this.send( {
                     method: 'PUT',
@@ -506,11 +521,41 @@ class Client {
              * @param {{}} config
              * @return {Promise<*&{error: *, request: *}>}
              */
+            async putForm(url, body = {}, config = {}) {
+                return await this.send( {
+                    method: 'PUT',
+                    url,
+                    body: toFormData(body),
+                    ...config,
+                }  );
+            },
+
+            /**
+             * @param {string} url
+             * @param {{}} body
+             * @param {{}} config
+             * @return {Promise<*&{error: *, request: *}>}
+             */
             async patch(url, body = {}, config = {}) {
                 return await this.send( {
                     method: 'PATCH',
                     url,
                     body,
+                    ...config,
+                }  );
+            },
+
+            /**
+             * @param {string} url
+             * @param {{}} body
+             * @param {{}} config
+             * @return {Promise<*&{error: *, request: *}>}
+             */
+            async patchForm(url, body = {}, config = {}) {
+                return await this.send( {
+                    method: 'PATCH',
+                    url,
+                    body: toFormData(body),
                     ...config,
                 }  );
             }
@@ -851,6 +896,16 @@ export default function createClient(config = {}) {
          * @param {{}} config
          * @return {Promise<*>}
          */
+        async postForm(url, body = {}, config = {}) {
+            return await this.request().postForm(url, body, config);
+        },
+
+        /**
+         * @param {string} url
+         * @param {{}} body
+         * @param {{}} config
+         * @return {Promise<*>}
+         */
         async put(url, body = {}, config = {}) {
             return await this.request().put(url, body, config);
         },
@@ -861,8 +916,28 @@ export default function createClient(config = {}) {
          * @param {{}} config
          * @return {Promise<*>}
          */
+        async putForm(url, body = {}, config = {}) {
+            return await this.request().putForm(url, body, config);
+        },
+
+        /**
+         * @param {string} url
+         * @param {{}} body
+         * @param {{}} config
+         * @return {Promise<*>}
+         */
         async patch(url, body = {}, config = {}) {
             return await this.request().patch(url, body, config);
-        }
+        },
+
+        /**
+         * @param {string} url
+         * @param {{}} body
+         * @param {{}} config
+         * @return {Promise<*>}
+         */
+        async patchForm(url, body = {}, config = {}) {
+            return await this.request().patchForm(url, body, config);
+        },
     }
 }
