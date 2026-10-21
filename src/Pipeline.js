@@ -10,21 +10,12 @@ export default class Pipeline {
     /**
      * @type {function}
      */
-    #catchCallback;
+    #catchCallback = error => {throw error};
 
     /**
      * @type {[]}
      */
     #pipes = [];
-
-    /**
-     *
-     */
-    constructor() {
-        this.catch( error => {
-            throw error
-        } );
-    }
 
     /**
      * @param passable {*}
@@ -76,16 +67,14 @@ export default class Pipeline {
 
             return await pipeline( this.#passable );
         } catch (e) {
-            const callback = this.#catchCallback;
-
-            return callback( e );
+            return await this.#catchCallback.apply( this, [e] );
         }
     }
 
     /**
      * @returns {Promise<*|undefined>}
      */
-    thenReturn() {
+    async thenReturn() {
         return this.then( passable => passable );
     }
 
