@@ -1,4 +1,4 @@
-import {HttpResponseError} from "../errors/index.js";
+import HttpResponseError from "../errors/HttpResponseError.js";
 
 /**
  * @param {function} validationCallback

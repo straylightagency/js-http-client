@@ -331,13 +331,13 @@ class Client {
      * @param {{}} config
      */
     request(config = {}) {
-        const requestHeaders = config.headers ?? {};
-        const headers = isPlainObject( this.#config.headers ) ? {...this.#config.headers, ...requestHeaders} : requestHeaders;
+        const headers = config.headers ?? {};
+        const requestHeaders = isPlainObject( this.#config.headers ) ? {...this.#config.headers, ...headers} : headers;
 
-        const requestParams = config.params ?? {};
-        const params = isPlainObject( this.#config.params ) ? {...this.#config.params, ...requestParams} : requestParams;
+        const params = config.params ?? {};
+        const requestParams = isPlainObject( this.#config.params ) ? {...this.#config.params, ...params} : params;
 
-        const requestConfig = {...this.#config, ...config, headers, params};
+        const requestConfig = {...this.#config, ...config, headers: requestHeaders, params: requestParams};
         const requestMiddlewares = [...this.#middlewares, ...requestConfig.middlewares || []];
 
         const client = this;
@@ -367,13 +367,13 @@ class Client {
              * @return {Promise<*&{request: *, error: *}>}
              */
             async send(config) {
-                const endpointHeaders = config.headers ?? {};
-                const headers = isPlainObject( requestHeaders ) ? {...requestHeaders, ...endpointHeaders} : endpointHeaders;
+                const headers = config.headers ?? {};
+                const endpointHeaders = isPlainObject( requestHeaders ) ? {...requestHeaders, ...headers} : headers;
 
-                const endpointParams = config.params ?? {};
-                const params = isPlainObject( requestParams ) ? {...requestParams, ...endpointParams} : endpointParams;
+                const params = config.params ?? {};
+                const endpointParams = isPlainObject( requestParams ) ? {...requestParams, ...params} : params;
 
-                const endpointConfig = {...requestConfig, ...config, headers, params};
+                const endpointConfig = {...requestConfig, ...config, headers: endpointHeaders, params: endpointParams};
                 const endpointMiddlewares = [...requestMiddlewares, ...endpointConfig.middlewares || []];
 
                 let context = { request: endpointConfig, middlewares: endpointMiddlewares };
@@ -389,7 +389,7 @@ class Client {
                         const useXhr = ( context.request.use !== undefined && context.request.use.toLowerCase() === 'xhr' ) || typeof endpointConfig.onUploadProgress === 'function';
 
                         if ( context.request.use !== undefined && context.request.use.toLowerCase() === 'fetch' && typeof endpointConfig.onUploadProgress === 'function' ) {
-                            console.warn( 'Fetch handler is not compatible with onUploadProgress callback. Switch to XHR handler as a fallback.', context.request );
+                            console.warn( "Fetch handler is not compatible with onUploadProgress callback. Switch to XHR handler as a fallback. Edit the config with ` use: 'xhr' ` to remove this warning.", context.request );
                         }
 
                         const handler = useXhr ? client.xhrHandler : client.fetchHandler;
@@ -538,8 +538,8 @@ class Client {
         const signal = config.signal instanceof AbortSignal ? config.signal : undefined;
         const body = isRequestWithBody(method) ? formatBody(config.body, headers) : undefined;
 
-        if (body !== undefined && !hasFiles(body)) {
-            headers['Content-Type'] = 'application/json; charset=UTF-8';
+        if (headers['Content-Type'] === undefined && body !== undefined && isPlainObject(body) && !hasFiles(body)) {
+            headers['Content-Type'] = 'application/json';
         }
 
         if (body !== undefined && body instanceof FormData) {
@@ -547,109 +547,109 @@ class Client {
         }
 
         return new Promise( async (resolve, reject) => {
-           try {
-               const requestOptions = {
-                   method,
-                   headers,
-                   body,
-                   signal,
-                   credentials,
-               };
+            try {
+                const requestOptions = {
+                    method,
+                    headers,
+                    body,
+                    signal,
+                    credentials,
+                };
 
-               const response = ( response => {
-                   if ( ! response.body || typeof config.onDownloadProgress !== 'function') {
-                       return response;
-                   }
+                const response = ( response => {
+                    if ( ! response.body || typeof config.onDownloadProgress !== 'function') {
+                        return response;
+                    }
 
-                   const totalHeader = response.headers.get('content-length');
-                   const total = totalHeader ? parseInt(totalHeader, 10) : 0;
-                   let loaded = 0;
+                    const totalHeader = response.headers.get('content-length');
+                    const total = totalHeader ? parseInt(totalHeader, 10) : 0;
+                    let loaded = 0;
 
-                   const reader = response.body.getReader();
-                   const streamedStream = new ReadableStream({
-                       async start(controller) {
-                           while (true) {
-                               const { done, value } = await reader.read();
-                               if (done) break;
+                    const reader = response.body.getReader();
+                    const streamedStream = new ReadableStream({
+                        async start(controller) {
+                            while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
 
-                               loaded += value.byteLength;
+                                loaded += value.byteLength;
 
-                               config.onDownloadProgress( {
-                                   lengthComputable: total > 0,
-                                   loaded,
-                                   total,
-                               } );
+                                config.onDownloadProgress( {
+                                    lengthComputable: total > 0,
+                                    loaded,
+                                    total,
+                                } );
 
-                               controller.enqueue(value);
-                           }
-                           controller.close();
-                       },
-                   });
+                                controller.enqueue(value);
+                            }
+                            controller.close();
+                        },
+                    });
 
-                   return new Response( streamedStream, {
-                       status: response.status,
-                       statusText: response.statusText,
-                       headers: response.headers,
-                   });
-               } )( await fetch( url, requestOptions ) );
+                    return new Response( streamedStream, {
+                        status: response.status,
+                        statusText: response.statusText,
+                        headers: response.headers,
+                    });
+                } )( await fetch( url, requestOptions ) );
 
-               const responseType = config.responseType || 'json';
-               const contentType = response.headers.get('content-type') || '';
+                const responseType = config.responseType || 'json';
+                const contentType = response.headers.get('content-type') || '';
 
-               if (isBinaryContentType( contentType ) && (responseType === 'text' || responseType === 'json')) {
-                   reject( new HttpSecurityError(
-                       `Attempted to read binary content-type ("${contentType}") as "${responseType}". ` +
-                       `Please use { responseType: 'blob' } or { responseType: 'arrayBuffer' } instead.`
-                   ) );
-               }
+                if (isBinaryContentType( contentType ) && (responseType === 'text' || responseType === 'json')) {
+                    reject( new HttpSecurityError(
+                        `Attempted to read binary content-type ("${contentType}") as "${responseType}". ` +
+                        `Please use { responseType: 'blob' } or { responseType: 'arrayBuffer' } instead.`
+                    ) );
+                }
 
-               let data;
+                let data;
 
-               switch (responseType) {
-                   case 'blob':
-                       data = await response.blob();
-                       break;
-                   case 'arrayBuffer':
-                       data = await response.arrayBuffer();
-                       break;
-                   case 'formData':
-                       data = await response.formData();
-                       break;
-                   case 'text':
-                       data = await response.text();
-                       break;
-                   case 'json':
-                   default:
-                       const text = await response.text();
-                       try {
-                           data = text ? JSON.parse(text) : null;
-                       } catch (e) {
-                           data = text;
-                       }
-               }
+                switch (responseType) {
+                    case 'blob':
+                        data = await response.blob();
+                        break;
+                    case 'arrayBuffer':
+                        data = await response.arrayBuffer();
+                        break;
+                    case 'formData':
+                        data = await response.formData();
+                        break;
+                    case 'text':
+                        data = await response.text();
+                        break;
+                    case 'json':
+                    default:
+                        const text = await response.text();
+                        try {
+                            data = text ? JSON.parse(text) : null;
+                        } catch (e) {
+                            data = text;
+                        }
+                }
 
-               const httpResponse = {
-                   status: response.status,
-                   statusText: getStatusText( response.status, response.statusText ),
-                   ok: response.ok,
-                   headers: Object.fromEntries(
-                       Array.from(response.headers.entries()).map(([key, value]) => [key.toLowerCase(), value])
-                   ),
-                   data,
-               };
+                const httpResponse = {
+                    status: response.status,
+                    statusText: getStatusText( response.status, response.statusText ),
+                    ok: response.ok,
+                    headers: Object.fromEntries(
+                        Array.from(response.headers.entries()).map(([key, value]) => [key.toLowerCase(), value])
+                    ),
+                    data,
+                };
 
-               return resolve( httpResponse );
-           } catch (error) {
-               if (error instanceof DOMException && error.name === 'AbortError') {
-                   return reject(new HttpCancelledError());
-               }
+                return resolve( httpResponse );
+            } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') {
+                    return reject(new HttpCancelledError());
+                }
 
-               if (error instanceof TypeError) {
-                   return reject(new HttpNetworkError(error.message));
-               }
+                if (error instanceof TypeError) {
+                    return reject(new HttpNetworkError(error.message));
+                }
 
-               return reject(error);
-           }
+                return reject(error);
+            }
         });
     }
 
@@ -666,8 +666,8 @@ class Client {
         const body = isRequestWithBody(method) ? formatBody(config.body, headers) : undefined;
         const responseType = config.responseType || 'json';
 
-        if (body !== undefined && !hasFiles(body)) {
-            headers['Content-Type'] = 'application/json; charset=UTF-8';
+        if (headers['Content-Type'] === undefined && body !== undefined && isPlainObject(body) && !hasFiles(body)) {
+            headers['Content-Type'] = 'application/json';
         }
 
         if (body !== undefined && body instanceof FormData) {
@@ -678,7 +678,7 @@ class Client {
             const xhr = new XMLHttpRequest();
             xhr.open( method, url, true );
             xhr.withCredentials = config.credentials ?? false;
-            xhr.responseType = responseType === 'json' ? 'text' : responseType;
+            xhr.responseType = responseType === 'json' || responseType === 'formData' ? 'text' : responseType.toLowerCase();
 
             signal && signal.addEventListener('abort', () => xhr.abort() );
 

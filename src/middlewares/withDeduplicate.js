@@ -1,4 +1,4 @@
-import {HttpDuplicateError} from "../errors/index.js";
+import HttpDuplicateError from "../errors/HttpDuplicateError.js";
 
 /**
  * @return {function(*, *): Promise<*>}

@@ -2,7 +2,7 @@
  * @param {boolean} enabled
  * @return {(function(*, *): Promise<*|undefined>)|*|(function(*, *): *)}
  */
-export default function withLogger(enabled = process.env.NODE_ENV !== 'production') {
+export default function withLogger(enabled = false) {
     if (!enabled) return (context, next) => next(context);
 
     return async (context, next) => {

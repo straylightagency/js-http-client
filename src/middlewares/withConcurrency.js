@@ -3,7 +3,7 @@
  * @return {(function(*, *): Promise<void>)|*}
  */
 export default function withConcurrency(limit= 5 ) {
-    const maxConcurrent = limit ?? 5;
+    const maxConcurrent = Number(limit) ?? 5;
     let activeCount = 0;
     const queue = [];
 

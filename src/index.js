@@ -17,7 +17,7 @@ import {
     withValidationStatus
 } from './middlewares/index.js';
 
-import createClient from "./Client.js";
+import createClient from "./client.js";
 
 export default createClient;
 

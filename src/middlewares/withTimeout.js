@@ -1,3 +1,5 @@
+import HttpCancelledError from '../errors/HttpCancelledError.js';
+
 /**
  * @param {number} timeoutDuration
  * @return {(function(*, *): Promise<*|undefined>)|*}
