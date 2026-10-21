@@ -175,13 +175,17 @@ function buildQueryString(params) {
 }
 
 /**
- * @param {string} url
+ * @param {function|string} url
  * @param {string} baseUrl
  * @param {string} prefix
  * @param {*} params
  * @return {string}
  */
 function buildUrl(url, baseUrl = null, prefix = null, params = null) {
+    if ( typeof url === 'function' ) {
+        url = url.call();
+    }
+
     if (prefix &&
         ! url.startsWith('http://') &&
         ! url.startsWith('https://')
@@ -270,11 +274,15 @@ function toFormData(data, formData = new FormData(), parentKey = null) {
 }
 
 /**
- * @param {{}|FormData|String} body
+ * @param {{}|FormData|string|Function} body
  * @param {{}} headers
  * @return {void|Uint8Array<ArrayBuffer>|undefined|FormData|ReadableStream|string}
  */
 function formatBody(body, headers = {}) {
+    if ( typeof body === 'function' ) {
+        body = body.call();
+    }
+
     if ( body === undefined || body === null) {
         return undefined;
     }
@@ -287,8 +295,8 @@ function formatBody(body, headers = {}) {
         return toFormData(body);
     }
 
-    if ( isPlainObject(body) || headers['Content-Type']?.includes('application/json')) {
-        return JSON.stringify(body);
+    if ( isPlainObject(body) ) {
+        return body;
     }
 
     return String(body);
@@ -363,17 +371,19 @@ class Client {
             },
 
             /**
+             * @param {string} url
+             * @param {string} method
              * @param {{}} config
              * @return {Promise<*&{request: *, error: *}>}
              */
-            async send(config) {
+            async send(url, method = 'GET', config = {}) {
                 const headers = config.headers ?? {};
                 const endpointHeaders = isPlainObject( requestHeaders ) ? {...requestHeaders, ...headers} : headers;
 
                 const params = config.params ?? {};
                 const endpointParams = isPlainObject( requestParams ) ? {...requestParams, ...params} : params;
 
-                const endpointConfig = {...requestConfig, ...config, headers: endpointHeaders, params: endpointParams};
+                const endpointConfig = {url, method, ...requestConfig, ...config, headers: endpointHeaders, params: endpointParams};
                 const endpointMiddlewares = [...requestMiddlewares, ...endpointConfig.middlewares || []];
 
                 let context = { request: endpointConfig, middlewares: endpointMiddlewares };
@@ -401,11 +411,11 @@ class Client {
                     ok = context?.response?.ok ?? false;
                 } catch (e) {
                     if ( ! ( typeof context.request.shouldCatchError === 'function' ) ) {
-                        context.request.shouldCatchError = (e) => e instanceof HttpError;
+                        context.request.shouldCatchError = e => e instanceof HttpError;
                     }
 
                     if ( ! ( typeof context.request.catchError === 'function' ) ) {
-                        context.request.catchError = (e) => e;
+                        context.request.catchError = e => e;
                     }
 
                     if ( context.request.shouldCatchError( e ) ) {
@@ -424,9 +434,7 @@ class Client {
              * @return {Promise<*&{error: *, request: *}>}
              */
             async get(url, config = {}) {
-                return await this.send( {
-                    method: 'GET',
-                    url,
+                return await this.send( url, 'GET', {
                     ...config,
                 }  );
             },
@@ -437,9 +445,7 @@ class Client {
              * @return {Promise<*&{error: *, request: *}>}
              */
             async head(url, config = {}) {
-                return await this.send( {
-                    method: 'HEAD',
-                    url,
+                return await this.send( url, 'HEAD', {
                     ...config,
                 }  );
             },
@@ -450,9 +456,7 @@ class Client {
              * @return {Promise<*&{error: *, request: *}>}
              */
             async query(url, config = {}) {
-                return await this.send( {
-                    method: 'QUERY',
-                    url,
+                return await this.send( url, 'QUERY', {
                     ...config,
                 }  );
             },
@@ -463,39 +467,20 @@ class Client {
              * @return {Promise<*&{error: *, request: *}>}
              */
             async delete(url, config = {}) {
-                return await this.send( {
-                    method: 'DELETE',
-                    url,
+                return await this.send( url, 'DELETE', {
                     ...config,
                 }  );
             },
 
             /**
              * @param {string} url
-             * @param {{}} body
+             * @param {{}|function} body
              * @param {{}} config
              * @return {Promise<*&{error: *, request: *}>}
              */
             async post(url, body = {}, config = {}) {
-                return await this.send( {
-                    method: 'POST',
-                    url,
+                return await this.send( url, 'POST', {
                     body,
-                    ...config,
-                }  );
-            },
-
-            /**
-             * @param {string} url
-             * @param {{}} body
-             * @param {{}} config
-             * @return {Promise<*&{error: *, request: *}>}
-             */
-            async postForm(url, body = {}, config = {}) {
-                return await this.send( {
-                    method: 'POST',
-                    url,
-                    body: toFormData(body),
                     ...config,
                 }  );
             },
@@ -507,9 +492,7 @@ class Client {
              * @return {Promise<*&{error: *, request: *}>}
              */
             async put(url, body = {}, config = {}) {
-                return await this.send( {
-                    method: 'PUT',
-                    url,
+                return await this.send( url, 'PUT', {
                     body,
                     ...config,
                 }  );
@@ -517,57 +500,17 @@ class Client {
 
             /**
              * @param {string} url
-             * @param {{}} body
-             * @param {{}} config
-             * @return {Promise<*&{error: *, request: *}>}
-             */
-            async putForm(url, body = {}, config = {}) {
-                return await this.send( {
-                    method: 'PUT',
-                    url,
-                    body: toFormData(body),
-                    ...config,
-                }  );
-            },
-
-            /**
-             * @param {string} url
-             * @param {{}} body
+             * @param {{}|function} body
              * @param {{}} config
              * @return {Promise<*&{error: *, request: *}>}
              */
             async patch(url, body = {}, config = {}) {
-                return await this.send( {
-                    method: 'PATCH',
-                    url,
+                return await this.send( url, 'PATCH', {
                     body,
                     ...config,
                 }  );
             },
-
-            /**
-             * @param {string} url
-             * @param {{}} body
-             * @param {{}} config
-             * @return {Promise<*&{error: *, request: *}>}
-             */
-            async patchForm(url, body = {}, config = {}) {
-                return await this.send( {
-                    method: 'PATCH',
-                    url,
-                    body: toFormData(body),
-                    ...config,
-                }  );
-            }
         }
-    }
-
-    /**
-     * @param {{}} config
-     * @return {Promise<*>}
-     */
-    async send(config) {
-        return this.request(config).send({});
     }
 
     /**
@@ -581,9 +524,11 @@ class Client {
             .map( ([key, value]) => [ key, String(value), ] ) );
         const credentials = config.credentials ?? 'same-origin';
         const signal = config.signal instanceof AbortSignal ? config.signal : undefined;
-        const body = isRequestWithBody(method) ? formatBody(config.body, headers) : undefined;
+        let body = isRequestWithBody(method) ? formatBody(config.body, headers) : undefined;
 
         if (headers['Content-Type'] === undefined && body !== undefined && isPlainObject(body) && !hasFiles(body)) {
+            body = JSON.stringify(body);
+
             headers['Content-Type'] = 'application/json';
         }
 
@@ -642,7 +587,7 @@ class Client {
                 const contentType = response.headers.get('content-type') || '';
 
                 if (isBinaryContentType( contentType ) && (responseType === 'text' || responseType === 'json')) {
-                    reject( new HttpSecurityError(
+                    return reject( new HttpSecurityError(
                         `Attempted to read binary content-type ("${contentType}") as "${responseType}". ` +
                         `Please use { responseType: 'blob' } or { responseType: 'arrayBuffer' } instead.`
                     ) );
@@ -708,10 +653,12 @@ class Client {
         const headers = Object.fromEntries( Object.entries( config.headers && isPlainObject(config.headers) ? config.headers : {} )
             .map( ([key, value]) => [ key, String(value), ] ) );
         const signal = config.signal && config.signal instanceof AbortSignal ? config.signal : undefined;
-        const body = isRequestWithBody(method) ? formatBody(config.body, headers) : undefined;
+        let body = isRequestWithBody(method) ? formatBody(config.body, headers) : undefined;
         const responseType = config.responseType || 'json';
 
         if (headers['Content-Type'] === undefined && body !== undefined && isPlainObject(body) && !hasFiles(body)) {
+            body = JSON.stringify(body);
+
             headers['Content-Type'] = 'application/json';
         }
 
@@ -846,6 +793,16 @@ export default function createClient(config = {}) {
 
         /**
          * @param {string} url
+         * @param {string} method
+         * @param {{}} config
+         * @return {Promise<*>}
+         */
+        async send(url, method = 'GET', config = {}) {
+            return await this.request().send(url, method, config);
+        },
+
+        /**
+         * @param {string} url
          * @param {{}} config
          * @return {Promise<*>}
          */
@@ -882,7 +839,7 @@ export default function createClient(config = {}) {
 
         /**
          * @param {string} url
-         * @param {{}} body
+         * @param {{}|function} body
          * @param {{}} config
          * @return {Promise<*>}
          */
@@ -892,17 +849,7 @@ export default function createClient(config = {}) {
 
         /**
          * @param {string} url
-         * @param {{}} body
-         * @param {{}} config
-         * @return {Promise<*>}
-         */
-        async postForm(url, body = {}, config = {}) {
-            return await this.request().postForm(url, body, config);
-        },
-
-        /**
-         * @param {string} url
-         * @param {{}} body
+         * @param {{}|function} body
          * @param {{}} config
          * @return {Promise<*>}
          */
@@ -912,32 +859,12 @@ export default function createClient(config = {}) {
 
         /**
          * @param {string} url
-         * @param {{}} body
-         * @param {{}} config
-         * @return {Promise<*>}
-         */
-        async putForm(url, body = {}, config = {}) {
-            return await this.request().putForm(url, body, config);
-        },
-
-        /**
-         * @param {string} url
-         * @param {{}} body
+         * @param {{}|function} body
          * @param {{}} config
          * @return {Promise<*>}
          */
         async patch(url, body = {}, config = {}) {
             return await this.request().patch(url, body, config);
-        },
-
-        /**
-         * @param {string} url
-         * @param {{}} body
-         * @param {{}} config
-         * @return {Promise<*>}
-         */
-        async patchForm(url, body = {}, config = {}) {
-            return await this.request().patchForm(url, body, config);
         },
     }
 }
