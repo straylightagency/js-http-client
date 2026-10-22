@@ -383,10 +383,11 @@ class Client {
                 const params = config.params ?? {};
                 const endpointParams = isPlainObject( requestParams ) ? {...requestParams, ...params} : params;
 
-                const endpointConfig = {url, method, ...requestConfig, ...config, headers: endpointHeaders, params: endpointParams};
                 const endpointMiddlewares = [...requestMiddlewares, ...endpointConfig.middlewares || []];
 
-                let context = { request: endpointConfig, middlewares: endpointMiddlewares };
+                const endpointConfig = {url, method, ...requestConfig, ...config, headers: endpointHeaders, params: endpointParams, middlewares: endpointMiddlewares};
+
+                let context = { request: endpointConfig };
                 let error;
                 let ok = false;
 
@@ -670,7 +671,7 @@ class Client {
             const xhr = new XMLHttpRequest();
             xhr.open( method, url, true );
             xhr.withCredentials = config.credentials ?? false;
-            xhr.responseType = responseType === 'json' || responseType === 'formData' ? 'text' : responseType.toLowerCase();
+            xhr.responseType = ['json', 'formData'].includes( responseType ) ? 'text' : responseType.toLowerCase();
 
             signal && signal.addEventListener('abort', () => xhr.abort() );
 
