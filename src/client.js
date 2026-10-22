@@ -383,7 +383,8 @@ class Client {
                 const params = config.params ?? {};
                 const endpointParams = isPlainObject( requestParams ) ? {...requestParams, ...params} : params;
 
-                const endpointMiddlewares = [...requestMiddlewares, ...endpointConfig.middlewares || []];
+                const middlewares = config.middlewares ?? [];
+                const endpointMiddlewares = [...requestMiddlewares, ...middlewares];
 
                 const endpointConfig = {url, method, ...requestConfig, ...config, headers: endpointHeaders, params: endpointParams, middlewares: endpointMiddlewares};
 
