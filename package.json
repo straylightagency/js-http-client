@@ -1,7 +1,7 @@
 {
   "name": "@straylightagency/http-client",
   "version": "1.1.0",
-  "description": "Package to make HTTP requests from browser using both fetch handler and XMLHttpRequest.",
+  "description": "A lightweight JavaScript HTTP client for browser applications, built on the native `fetch` API with an `XMLHttpRequest` fallback for upload progress events.",
   "type": "module",
   "main": "src/index.js",
   "exports": {
