@@ -22,6 +22,7 @@ It provides a small, configurable API for common HTTP methods, request defaults,
 - [Creating a client](#creating-a-client)
 - [Configuration options](#configuration-options)
 - [Making requests](#making-requests)
+- [Cancelable requests](#cancelable-requests)
 - [Responses and errors](#responses-and-errors)
 - [Middleware](#middleware)
 - [Contributing](#contributing)
