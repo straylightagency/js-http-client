@@ -197,6 +197,85 @@ await api.get('/downloads/archive', {
 
 You can select the handler explicitly with `use: 'fetch'` or `use: 'xhr'`.
 
+## Cancelable requests
+
+The HTTP client supports request cancellation through the native `AbortSignal` API.
+
+You can combine it with [`@straylightagency/cancelable-promise`](https://github.com/straylightagency/js-cancelable-promise) to get a cancelable Promise interface, allowing you to cancel an HTTP request directly from the returned promise.
+
+Install both packages:
+
+```bash
+npm install @straylightagency/http-client @straylightagency/cancelable-promise
+```
+
+### Basic usage
+
+```js
+import createClient from '@straylightagency/http-client';
+import { CancelablePromise } from '@straylightagency/cancelable-promise';
+
+const api = createClient({
+    baseUrl: 'https://api.example.com',
+});
+
+function getUser(id) {
+    return new CancelablePromise((resolve, reject, signal) => {
+        api.get(`/users/${id}`, { signal })
+            .then(response => {
+                if (response.error) {
+                    reject(response.error);
+                    return;
+                }
+
+                if (!response.ok) {
+                    reject(new Error(`HTTP ${response.status}: ${response.statusText}`));
+                    return;
+                }
+
+                resolve(response.data);
+            })
+            .catch(reject);
+    });
+}
+
+const request = getUser(42);
+
+// Cancel the request
+request.cancel();
+```
+
+Calling `cancel()` aborts the underlying HTTP request through its `AbortSignal`.
+
+### Using async/await
+
+Cancelable promises remain compatible with `async` / `await`:
+
+```js
+const request = getUser(42);
+
+try {
+    const user = await request;
+    console.log(user);
+} catch (error) {
+    console.error(error);
+}
+
+// Cancel the request whenever needed
+request.cancel();
+```
+
+### When to use it
+
+This integration is particularly useful when:
+
+- A user navigates away before a request completes.
+- A search request becomes obsolete after new input.
+- A component needs to cancel pending requests when it is unmounted.
+- An application needs explicit control over asynchronous operations.
+
+**Note:** `@straylightagency/http-client` does not require `@straylightagency/cancelable-promise`. It already supports native `AbortSignal` cancellation. The additional package simply provides a convenient cancelable Promise interface.
+
 ## Responses and errors
 
 A completed HTTP request returns a response object containing these fields:
