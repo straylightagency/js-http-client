@@ -423,6 +423,6 @@ Report issues: https://github.com/straylightagency/js-http-client/issues
 
 ## License
 
-`@straylightagency/animate` is released under the MIT License.
+`@straylightagency/js-http-client` is released under the MIT License.
 
 See the [LICENSE](LICENSE) file for details.
